@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bunker46 Extension — NIP-07 Without Local Key Storage</title>
+  <meta name="description" content="Browser extension providing NIP-07 (window.nostr) via remote NIP-46 signing. Use Nostr apps without storing keys in your browser.">
+  <meta property="og:title" content="Bunker46 Extension — NIP-07 Without Local Key Storage">
+  <meta property="og:description" content="Browser extension providing NIP-07 via remote NIP-46 signing. Use Nostr apps without storing keys in your browser.">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🧩%3C/text%3E%3C/svg%3E">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        ext: { 300:'#a78bfa',400:'#8b5cf6',500:'#7c3aed',600:'#6d28d9',700:'#5b21b6',800:'#4c1d95' },
+        bunker: { 300:'#91a7ff',400:'#748ffc',500:'#5c7cfa',600:'#4c6ef5',700:'#4263eb' },
+        surface: { 900:'#0c0e14',800:'#12151e',700:'#1a1d2b',600:'#232738' }
+      }}}
+    }
+  </script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+    body{font-family:'Inter',sans-serif}
+    .gradient-text{background:linear-gradient(135deg,#8b5cf6,#a78bfa,#c4b5fd);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero-glow{background:radial-gradient(ellipse 80% 60% at 50% -20%,rgba(139,92,246,.15),transparent)}
+    .card-glow{background:linear-gradient(135deg,rgba(139,92,246,.05),rgba(139,92,246,.02));border:1px solid rgba(139,92,246,.1);transition:all .3s}
+    .card-glow:hover{border-color:rgba(139,92,246,.25);box-shadow:0 0 30px rgba(139,92,246,.08)}
+    .ss-wrap{background:linear-gradient(135deg,rgba(139,92,246,.1),rgba(139,92,246,.03));border:1px solid rgba(139,92,246,.15)}
+    .ss-wrap img{transition:transform .3s ease}.ss-wrap:hover img{transform:scale(1.02)}
+    .nav-blur{backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+    .lightbox{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.92);cursor:zoom-out;align-items:center;justify-content:center}
+    .lightbox.active{display:flex}
+    .lightbox img{max-width:90vw;max-height:90vh;border-radius:12px;box-shadow:0 25px 50px rgba(0,0,0,.5)}
+    .phone-frame{max-width:320px;margin:0 auto}
+  </style>
+</head>
+<body class="bg-surface-900 text-white antialiased">
+<div id="lightbox" class="lightbox" onclick="this.classList.remove('active')"><img id="lightbox-img" src="" alt=""></div>
+<!-- Nav -->
+<nav class="fixed top-0 left-0 right-0 z-50 nav-blur bg-surface-900/80 border-b border-white/5">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-ext-600/20 flex items-center justify-center text-lg">🧩</div>
+        <span class="text-lg font-bold">Bunker46 <span class="text-ext-400 font-normal">Extension</span></span>
+      </div>
+      <div class="hidden md:flex items-center gap-8">
+        <a href="#how-it-works" class="text-sm text-gray-400 hover:text-white transition-colors">How It Works</a>
+        <a href="#features" class="text-sm text-gray-400 hover:text-white transition-colors">Features</a>
+        <a href="#screenshots" class="text-sm text-gray-400 hover:text-white transition-colors">Screenshots</a>
+        <a href="#install" class="text-sm text-gray-400 hover:text-white transition-colors">Install</a>
+        <a href="https://github.com/dsbaars/bunker46-extension" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ext-600 hover:bg-ext-700 text-white text-sm font-medium transition-colors">
+          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+      <a href="https://github.com/dsbaars/bunker46-extension" target="_blank" rel="noopener" class="md:hidden px-3 py-1.5 rounded-lg bg-ext-600 text-white text-sm font-medium">GitHub</a>
+    </div>
+  </div>
+</nav>
+<!-- Hero -->
+<section class="relative min-h-screen flex items-center hero-glow pt-16">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
+    <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-ext-600/10 border border-ext-600/20 text-ext-300 text-sm mb-6">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+          NIP-07 &middot; Remote Signing &middot; Chrome &amp; Firefox
+        </div>
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">Use Nostr apps <span class="gradient-text">without storing keys</span> in your browser</h1>
+        <p class="text-lg text-gray-400 mb-8 max-w-xl leading-relaxed">The Bunker46 extension provides <code class="bg-surface-600 px-2 py-0.5 rounded text-sm text-ext-300">window.nostr</code> (NIP-07) but forwards every signing request to your remote NIP-46 signer. Your private keys never touch the browser.</p>
+        <div class="flex flex-wrap gap-3">
+          <a href="https://chromewebstore.google.com/detail/bunker46/hffbfaedhainmpaodhdgepnmmkmpahaa" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-ext-600 hover:bg-ext-700 text-white font-semibold transition-all hover:shadow-lg hover:shadow-ext-600/25">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+            Chrome
+          </a>
+          <a href="https://addons.mozilla.org/nl/firefox/addon/bunker46/" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold transition-all hover:shadow-lg hover:shadow-orange-600/25">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm5.684 14.736A7.951 7.951 0 0112 19.95a7.951 7.951 0 01-5.684-3.214c-.185-.205-.062-.516.205-.516h11.158c.268 0 .39.311.205.516zM17.5 13h-11a.5.5 0 010-1h11a.5.5 0 010 1zm.316-3.236c.185.205.062.516-.205.516H6.389c-.267 0-.39-.311-.205-.516A7.951 7.951 0 0112 6.05c2.248 0 4.27.937 5.816 2.714z"/></svg>
+            Firefox
+          </a>
+          <a href="https://github.com/dsbaars/bunker46-extension" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 text-white font-semibold transition-all">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            Source
+          </a>
+        </div>
+      </div>
+      <div class="flex justify-center">
+        <div class="ss-wrap rounded-2xl p-3 overflow-hidden cursor-pointer max-w-sm" onclick="openLightbox('assets/popup-connection.png')">
+          <img src="assets/popup-connection.png" alt="Bunker46 Extension" class="rounded-xl w-full shadow-2xl shadow-black/50" loading="lazy">
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- Concept Explainer -->
+<section id="how-it-works" class="relative py-20 md:py-28">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl sm:text-4xl font-bold mb-4">How remote signing works</h2>
+      <p class="text-gray-400 max-w-2xl mx-auto">Traditional NIP-07 extensions store your private key in the browser. Bunker46 Extension takes a fundamentally different approach.</p>
+    </div>
+
+    <!-- Flow diagram -->
+    <div class="max-w-4xl mx-auto">
+      <div class="grid md:grid-cols-3 gap-6 items-center">
+        <!-- Web App -->
+        <div class="card-glow rounded-2xl p-6 text-center">
+          <div class="text-3xl mb-3">🌐</div>
+          <h4 class="font-semibold mb-2">Nostr Web App</h4>
+          <p class="text-gray-400 text-sm">Calls <code class="bg-surface-600 px-1.5 py-0.5 rounded text-xs text-ext-300">window.nostr.signEvent()</code></p>
+        </div>
+        <!-- Arrow -->
+        <div class="hidden md:flex items-center justify-center">
+          <div class="flex flex-col items-center gap-2">
+            <svg class="w-8 h-8 text-ext-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+            <span class="text-xs text-gray-500">via Nostr relays</span>
+            <svg class="w-8 h-8 text-ext-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16l-4-4m0 0l4-4m-4 4h18"/></svg>
+          </div>
+        </div>
+        <div class="flex md:hidden items-center justify-center py-2">
+          <svg class="w-8 h-8 text-ext-400 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16l-4-4m0 0l4-4m-4 4h18"/></svg>
+        </div>
+        <!-- Bunker -->
+        <div class="card-glow rounded-2xl p-6 text-center border-ext-400/30">
+          <div class="text-3xl mb-3">🔐</div>
+          <h4 class="font-semibold mb-2">Your Bunker</h4>
+          <p class="text-gray-400 text-sm">Signs with your encrypted key, returns only the signature</p>
+        </div>
+      </div>
+
+      <div class="mt-12 card-glow rounded-2xl p-8">
+        <div class="grid md:grid-cols-2 gap-8">
+          <div>
+            <h4 class="font-semibold text-red-300 mb-3 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              Traditional NIP-07
+            </h4>
+            <ul class="space-y-2 text-sm text-gray-400">
+              <li class="flex items-start gap-2"><span class="text-red-400 mt-0.5">&#x2717;</span> Private key stored in browser extension</li>
+              <li class="flex items-start gap-2"><span class="text-red-400 mt-0.5">&#x2717;</span> Vulnerable to browser exploits</li>
+              <li class="flex items-start gap-2"><span class="text-red-400 mt-0.5">&#x2717;</span> One device = one key copy</li>
+              <li class="flex items-start gap-2"><span class="text-red-400 mt-0.5">&#x2717;</span> No audit trail of signing requests</li>
+            </ul>
+          </div>
+          <div>
+            <h4 class="font-semibold text-emerald-300 mb-3 flex items-center gap-2">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              Bunker46 Extension
+            </h4>
+            <ul class="space-y-2 text-sm text-gray-400">
+              <li class="flex items-start gap-2"><span class="text-emerald-400 mt-0.5">&#x2713;</span> Keys stay on your secure server</li>
+              <li class="flex items-start gap-2"><span class="text-emerald-400 mt-0.5">&#x2713;</span> Browser sees only public keys + signatures</li>
+              <li class="flex items-start gap-2"><span class="text-emerald-400 mt-0.5">&#x2713;</span> Multiple devices, one key source</li>
+              <li class="flex items-start gap-2"><span class="text-emerald-400 mt-0.5">&#x2713;</span> Per-domain permission control</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- Features -->
+<section id="features" class="relative py-20 md:py-28 bg-surface-800/50">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl sm:text-4xl font-bold mb-4">Packed with <span class="gradient-text">privacy features</span></h2>
+      <p class="text-gray-400 max-w-2xl mx-auto">More than just a bridge. Full control over which sites see your Nostr identity and what they can do with it.</p>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="card-glow rounded-2xl p-6">
+        <div class="text-2xl mb-3">👥</div>
+        <h3 class="text-lg font-semibold mb-2">Multiple Profiles</h3>
+        <p class="text-gray-400 text-sm leading-relaxed">Switch between different Nostr identities with separate sessions, permissions, and privacy settings per profile.</p>
+      </div>
+      <div class="card-glow rounded-2xl p-6">
+        <div class="text-2xl mb-3">🔒</div>
+        <h3 class="text-lg font-semibold mb-2">Per-domain Permissions</h3>
+        <p class="text-gray-400 text-sm leading-relaxed">Each website must be explicitly allowed before accessing your Nostr identity. Allow once or always, revoke anytime.</p>
+      </div>
+      <div class="card-glow rounded-2xl p-6">
+        <div class="text-2xl mb-3">👻</div>
+        <h3 class="text-lg font-semibold mb-2">Privacy Mode</h3>
+        <p class="text-gray-400 text-sm leading-relaxed">When enabled, <code class="bg-surface-600 px-1.5 py-0.5 rounded text-xs text-ext-300">window.nostr</code> is only injected on whitelisted domains. Reduces fingerprinting across the web.</p>
+      </div>
+      <div class="card-glow rounded-2xl p-6">
+        <div class="text-2xl mb-3">🔗</div>
+        <h3 class="text-lg font-semibold mb-2">Easy Connection</h3>
+        <p class="text-gray-400 text-sm leading-relaxed">Connect with a <code class="bg-surface-600 px-1.5 py-0.5 rounded text-xs text-ext-300">bunker://</code> URI or scan a QR code with nostrconnect. Session persists across restarts.</p>
+      </div>
+      <div class="card-glow rounded-2xl p-6">
+        <div class="text-2xl mb-3">🌍</div>
+        <h3 class="text-lg font-semibold mb-2">22 Languages</h3>
+        <p class="text-gray-400 text-sm leading-relaxed">Localized in 22 languages from English to Japanese, Arabic to Ukrainian. Uses your browser's preferred language.</p>
+      </div>
+      <div class="card-glow rounded-2xl p-6">
+        <div class="text-2xl mb-3">🛡️</div>
+        <h3 class="text-lg font-semibold mb-2">Full NIP-07 Support</h3>
+        <p class="text-gray-400 text-sm leading-relaxed">getPublicKey, signEvent, getRelays, nip04/nip44 encrypt and decrypt. Full protocol compliance, zero local key storage.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- Screenshots -->
+<section id="screenshots" class="relative py-20 md:py-28">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl sm:text-4xl font-bold mb-4">Clean, intuitive interface</h2>
+      <p class="text-gray-400">Everything you need to manage connections, permissions, and settings at a glance.</p>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div>
+        <div class="ss-wrap rounded-2xl p-2 mb-3 overflow-hidden cursor-pointer" onclick="openLightbox('assets/popup-connection.png')">
+          <img src="assets/popup-connection.png" alt="Connection" class="rounded-xl w-full" loading="lazy">
+        </div>
+        <h4 class="text-center font-medium text-sm">Connection</h4>
+        <p class="text-center text-xs text-gray-500 mt-1">Connect via bunker:// or nostrconnect QR</p>
+      </div>
+      <div>
+        <div class="ss-wrap rounded-2xl p-2 mb-3 overflow-hidden cursor-pointer" onclick="openLightbox('assets/popup-permissions.png')">
+          <img src="assets/popup-permissions.png" alt="Permissions" class="rounded-xl w-full" loading="lazy">
+        </div>
+        <h4 class="text-center font-medium text-sm">Permissions</h4>
+        <p class="text-center text-xs text-gray-500 mt-1">Per-domain access control and privacy whitelist</p>
+      </div>
+      <div>
+        <div class="ss-wrap rounded-2xl p-2 mb-3 overflow-hidden cursor-pointer" onclick="openLightbox('assets/popup-settings.png')">
+          <img src="assets/popup-settings.png" alt="Settings" class="rounded-xl w-full" loading="lazy">
+        </div>
+        <h4 class="text-center font-medium text-sm">Settings</h4>
+        <p class="text-center text-xs text-gray-500 mt-1">Privacy mode, badge, bunker URL, custom relays</p>
+      </div>
+      <div>
+        <div class="ss-wrap rounded-2xl p-2 mb-3 overflow-hidden cursor-pointer" onclick="openLightbox('assets/prompt-permission.png')">
+          <img src="assets/prompt-permission.png" alt="Permission Prompt" class="rounded-xl w-full" loading="lazy">
+        </div>
+        <h4 class="text-center font-medium text-sm">Permission Prompt</h4>
+        <p class="text-center text-xs text-gray-500 mt-1">Clear approval dialog for each site request</p>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- Install -->
+<section id="install" class="relative py-20 md:py-28 bg-surface-800/50">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl sm:text-4xl font-bold mb-4">Get started in 60 seconds</h2>
+      <p class="text-gray-400">Install the extension, connect to your bunker, and you're done.</p>
+    </div>
+    <div class="space-y-6 max-w-2xl mx-auto">
+      <div class="flex gap-5 items-start">
+        <div class="w-10 h-10 rounded-full bg-ext-600/20 border border-ext-600/30 flex items-center justify-center text-ext-400 font-bold flex-shrink-0">1</div>
+        <div>
+          <h3 class="text-lg font-semibold mb-1">Install the extension</h3>
+          <p class="text-gray-400 text-sm">Get it from the <a href="https://chromewebstore.google.com/detail/bunker46/hffbfaedhainmpaodhdgepnmmkmpahaa" target="_blank" rel="noopener" class="text-ext-400 hover:text-ext-300 underline underline-offset-2">Chrome Web Store</a> or <a href="https://addons.mozilla.org/nl/firefox/addon/bunker46/" target="_blank" rel="noopener" class="text-ext-400 hover:text-ext-300 underline underline-offset-2">Firefox Add-ons</a>.</p>
+        </div>
+      </div>
+      <div class="flex gap-5 items-start">
+        <div class="w-10 h-10 rounded-full bg-ext-600/20 border border-ext-600/30 flex items-center justify-center text-ext-400 font-bold flex-shrink-0">2</div>
+        <div>
+          <h3 class="text-lg font-semibold mb-1">Connect to your bunker</h3>
+          <p class="text-gray-400 text-sm">Paste a <code class="bg-surface-600 px-1.5 py-0.5 rounded text-xs text-ext-300">bunker://</code> URI from your Bunker46 instance, or scan the nostrconnect QR code.</p>
+        </div>
+      </div>
+      <div class="flex gap-5 items-start">
+        <div class="w-10 h-10 rounded-full bg-ext-600/20 border border-ext-600/30 flex items-center justify-center text-ext-400 font-bold flex-shrink-0">3</div>
+        <div>
+          <h3 class="text-lg font-semibold mb-1">Use any Nostr app</h3>
+          <p class="text-gray-400 text-sm">Visit any NIP-07 compatible website. The extension bridges signing requests to your bunker securely over Nostr relays.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA buttons -->
+    <div class="flex flex-wrap justify-center gap-4 mt-12">
+      <a href="https://chromewebstore.google.com/detail/bunker46/hffbfaedhainmpaodhdgepnmmkmpahaa" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-ext-600 hover:bg-ext-700 text-white font-semibold transition-all hover:shadow-lg hover:shadow-ext-600/25">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+        Chrome Web Store
+      </a>
+      <a href="https://addons.mozilla.org/nl/firefox/addon/bunker46/" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold transition-all hover:shadow-lg hover:shadow-orange-600/25">
+        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm5.684 14.736A7.951 7.951 0 0112 19.95a7.951 7.951 0 01-5.684-3.214c-.185-.205-.062-.516.205-.516h11.158c.268 0 .39.311.205.516zM17.5 13h-11a.5.5 0 010-1h11a.5.5 0 010 1zm.316-3.236c.185.205.062.516-.205.516H6.389c-.267 0-.39-.311-.205-.516A7.951 7.951 0 0112 6.05c2.248 0 4.27.937 5.816 2.714z"/></svg>
+        Firefox Add-ons
+      </a>
+    </div>
+  </div>
+</section>
+<!-- Bunker46 CTA -->
+<section class="relative py-20 md:py-28">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <div class="card-glow rounded-3xl p-10 md:p-14">
+      <div class="text-4xl mb-4">🔐</div>
+      <h2 class="text-2xl sm:text-3xl font-bold mb-4">Need a bunker for your keys?</h2>
+      <p class="text-gray-400 mb-8 max-w-xl mx-auto">Bunker46 is the open-source, self-hosted NIP-46 signer that pairs perfectly with this extension. Encrypted storage, 2FA, fine-grained permissions.</p>
+      <a href="https://github.com/dsbaars/bunker46" target="_blank" rel="noopener" class="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-bunker-600 hover:bg-bunker-700 text-white font-semibold transition-all hover:shadow-lg hover:shadow-bunker-600/25">
+        Explore Bunker46 &rarr;
+      </a>
+    </div>
+  </div>
+</section>
+<!-- Footer -->
+<footer class="border-t border-white/5 py-12">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🧩</span>
+        <span class="font-semibold">Bunker46 Extension</span>
+      </div>
+      <p class="text-gray-500 text-sm">Open source &middot; MIT License &middot; Built for the Nostr ecosystem</p>
+      <div class="flex items-center gap-4">
+        <a href="https://github.com/dsbaars/bunker46-extension" target="_blank" rel="noopener" class="text-gray-400 hover:text-white transition-colors">
+          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+        </a>
+        <a href="https://chromewebstore.google.com/detail/bunker46/hffbfaedhainmpaodhdgepnmmkmpahaa" target="_blank" rel="noopener" class="text-gray-400 hover:text-white transition-colors text-sm">Chrome</a>
+        <a href="https://addons.mozilla.org/nl/firefox/addon/bunker46/" target="_blank" rel="noopener" class="text-gray-400 hover:text-white transition-colors text-sm">Firefox</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('active');
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') document.getElementById('lightbox').classList.remove('active');
+});
+</script>
+</body>
+</html>
